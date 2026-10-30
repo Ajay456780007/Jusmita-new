@@ -1,0 +1,26 @@
+function Read_data()
+
+    opts = detectImportOptions('Dataset/VRFB/data/2. Raw data_ Research article 1_Interdigitated flow fields_Life cycle at 90J SF7_THTCp_1500 cm2 area.csv', 'HeaderLines', 13);
+    a = readtable('Dataset/VRFB/data/2. Raw data_ Research article 1_Interdigitated flow fields_Life cycle at 90J SF7_THTCp_1500 cm2 area.csv', opts);
+    
+    isStrictNumericIdx = varfun(@(x) isa(x, 'double') || isa(x, 'single'), a, 'OutputFormat', 'uniform');
+
+    numericTable = a(:, isStrictNumericIdx);
+    otherTable = a(:, ~isStrictNumericIdx);
+    
+    % Step 1: Primary KNN Imputation
+    imputedMatrix = fillmissing(numericTable.Variables, 'knn', 5);
+    
+    % Step 2: Fallback Cleanup
+    % If any NaNs remain because neighbors were also missing data, 
+    % clean them up using a moving average or 'linear' interpolation along the column.
+    if any(isnan(imputedMatrix), 'all')
+        imputedMatrix = fillmissing(imputedMatrix, 'movmean', 10, 1); 
+    end
+    
+    cleanNumericTable = array2table(imputedMatrix, 'VariableNames', numericTable.Properties.VariableNames);
+    o_table = fillmissing(cleanNumericTable);
+    a_imputed = [cleanNumericTable, otherTable];
+    a_imputed = a_imputed(:, a.Properties.VariableNames);
+
+end
